@@ -1,7 +1,7 @@
 from ultralytics import YOLO
 import numpy as np
 import cv2
-from shapely.geometry import Polygon, box
+from shapely.geometry import Polygon
 from src.models import Detection, PredictionType, Segmentation
 from src.config import get_settings
 
