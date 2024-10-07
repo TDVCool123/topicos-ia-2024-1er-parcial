@@ -12,11 +12,9 @@ def match_gun_bbox(segment: list[list[int]], bboxes: list[list[int]], max_distan
     matched_box = None
     min_distance = float('inf')
 
-    # Convertir el segmento a un polígono
     segment_polygon = Polygon(segment)
 
     for bbox in bboxes:
-        # Convertir el bbox a un polígono
         bbox_polygon = Polygon([
             [bbox[0], bbox[1]],  # (x1, y1)
             [bbox[2], bbox[1]],  # (x2, y1)
@@ -24,7 +22,6 @@ def match_gun_bbox(segment: list[list[int]], bboxes: list[list[int]], max_distan
             [bbox[0], bbox[3]],  # (x1, y2)
         ])
 
-        # Calcular la distancia entre el segmento y el bbox
         distance = segment_polygon.distance(bbox_polygon)
         if distance < min_distance and distance <= max_distance:
             min_distance = distance
@@ -50,17 +47,25 @@ def annotate_detection(image_array: np.ndarray, detection: Detection) -> np.ndar
         )
     return annotated_img
 
-
 def annotate_segmentation(image_array: np.ndarray, segmentation: Segmentation, draw_boxes: bool = True) -> np.ndarray:
     annotated_img = image_array.copy()
 
     for label, polygon, box in zip(segmentation.labels, segmentation.polygons, segmentation.boxes):
-        color = (0, 255, 0) if label == 'safe' else (0, 0, 255)
-        
-        # Dibujar el polígono con tinte verde o rojo según corresponda
+        mask = np.zeros(image_array.shape, dtype=np.uint8)
+
+        if label=="safe":
+            color = (0, 255, 0) 
+        elif label == 'danger':
+            color = (255, 0, 0)
+
         pts = np.array(polygon, np.int32)
         pts = pts.reshape((-1, 1, 2))
-        cv2.fillPoly(annotated_img, [pts], color)
+
+        cv2.fillPoly(mask, [pts], color)
+
+        #transparencia (50%)
+        alpha = 0.5
+        annotated_img = cv2.addWeighted(annotated_img, 1, mask, alpha, 0)
 
         if draw_boxes:
             x1, y1, x2, y2 = box
@@ -122,7 +127,6 @@ class GunDetector:
             if i in indexes
         ]
 
-        # Segmentar personas y determinar si están cerca de un arma
         polygons = []
         segment_labels = []
         detection = self.detect_guns(image_array, threshold)
